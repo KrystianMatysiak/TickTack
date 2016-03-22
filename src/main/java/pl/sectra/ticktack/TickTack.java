@@ -66,8 +66,8 @@ public class TickTack {
 
 			LocalDate lastDayOfMonth = today.withDayOfMonth(today.lengthOfMonth());
 
-			int hoursBalance = 0;
-			int minutesBalance = 0;
+
+			long monthlyWorkingTime = 0;
 
 			int dayOfMonth = 1;
 			do {
@@ -100,21 +100,24 @@ public class TickTack {
 				String timeOfInString = dateTimeFormatter.format(Instant.ofEpochMilli(timeOfIn));
 				String timeOfOutString = dateTimeFormatter.format(Instant.ofEpochMilli(timeOfOut));
 
-				long hoursAtWork = TimeUnit.MILLISECONDS.toHours(timeOfOut - timeOfIn);
-				long minutesAtWork = (TimeUnit.MILLISECONDS.toMinutes(timeOfOut - timeOfIn) -
-						TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(timeOfOut - timeOfIn)));
+				long workingTime = timeOfOut - timeOfIn;
+				long hoursAtWork = TimeUnit.MILLISECONDS.toHours(workingTime);
+				long minutesAtWork = (TimeUnit.MILLISECONDS.toMinutes(workingTime) -
+						TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(workingTime)));
 
 				LOG.info("In:\t" + timeOfInString);
 				LOG.info("Out:\t" + timeOfOutString);
-				LOG.info("In work for:\t" + hoursAtWork + "h" + minutesAtWork + "min");
+				LOG.info("In work for:\t" + hoursAtWork + "h" + minutesAtWork + "min\n");
 
-				hoursBalance += hoursAtWork - DAY_WORK_HOURS;
-				minutesBalance += minutesAtWork;
+				monthlyWorkingTime += workingTime;
 
 			} while (lastDayOfMonth.isBefore(lastDayOfMonth));
 
-			LOG.info("Hours balance:\t" + hoursBalance);
-			LOG.info("Minutes balance:\t" + minutesBalance);
+			long monthlyHoursAtWork = TimeUnit.MILLISECONDS.toHours(monthlyWorkingTime);
+			long monthlyMinutesAtWork = (TimeUnit.MILLISECONDS.toMinutes(monthlyWorkingTime) -
+					TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(monthlyWorkingTime)));
+
+			LOG.info("Monthly in work for:\t" + monthlyHoursAtWork + "h" + monthlyMinutesAtWork + "min\n");
 
 		} catch (IOException e) {
 			LOG.error(e);
