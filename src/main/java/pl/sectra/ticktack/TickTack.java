@@ -70,8 +70,9 @@ public class TickTack {
 			long monthlyWorkingTime = 0;
 
 			int dayOfMonth = 1;
+			LocalDate dayToCheck;
 			do {
-				LocalDate dayToCheck = today.withDayOfMonth(dayOfMonth);
+				dayToCheck = today.withDayOfMonth(dayOfMonth);
 				String punchDateParam = dayToCheck.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
 
 				HttpClient httpClient = new DefaultHttpClient();
@@ -87,7 +88,11 @@ public class TickTack {
 				String json = CharStreams.toString(new InputStreamReader(inputStream, Charsets.UTF_8));
 
 				Punch[] punches = new Gson().fromJson(json, Punch[].class);
-
+				if (punches.length != 2) {
+					dayOfMonth++;
+					continue;
+				}
+				
 				LOG.debug(Arrays.toString(punches));
 
 				Long timeOfIn = punches[0].timeOfRegistration;
@@ -111,7 +116,9 @@ public class TickTack {
 
 				monthlyWorkingTime += workingTime;
 
-			} while (lastDayOfMonth.isBefore(lastDayOfMonth));
+				dayOfMonth++;
+				
+			} while (dayToCheck.isBefore(lastDayOfMonth));
 
 			long monthlyHoursAtWork = TimeUnit.MILLISECONDS.toHours(monthlyWorkingTime);
 			long monthlyMinutesAtWork = (TimeUnit.MILLISECONDS.toMinutes(monthlyWorkingTime) -
