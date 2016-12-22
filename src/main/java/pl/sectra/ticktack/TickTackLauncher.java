@@ -82,7 +82,7 @@ public class TickTackLauncher {
 				Long timeOfOut = punches.get(1).timeOfRegistration;
 
 				DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-						.withLocale(Locale.UK)
+						.withLocale(Locale.GERMAN)
 						.withZone(ZoneId.systemDefault());
 
 				String timeOfInString = dateTimeFormatter.format(Instant.ofEpochMilli(timeOfIn));
