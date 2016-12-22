@@ -1,28 +1,21 @@
 package pl.sectra.ticktack;
 
 import com.beust.jcommander.JCommander;
-import com.google.common.base.Charsets;
-import com.google.common.io.CharStreams;
-import com.google.gson.Gson;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.log4j.Logger;
 import pl.sectra.ticktack.model.json.Punch;
 import pl.sectra.ticktack.view.commandline.CommandLineArgs;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * Created with IntelliJ IDEA.
@@ -30,21 +23,25 @@ import java.util.concurrent.TimeUnit;
  * Date: 22.03.2016
  * Time: 20:57
  */
-public class TickTack {
+public class TickTackLauncher {
 
-	private static final Logger LOG = Logger.getLogger(TickTack.class);
+	private static final Logger LOG = Logger.getLogger(TickTackLauncher.class);
+
+	private static final String TICK_TACK_SERVICE_URL_PARAM_NAME = "service.url";
+	private static final String TICK_TACK_USER_ID_PARAM_NAME = "user.id";
 
 	private static final Properties TICK_TACK_PROPERTIES = new Properties();
-
-	private static final int DAY_WORK_HOURS = 8;
-
 	static {
 		try {
-			TICK_TACK_PROPERTIES.load(TickTack.class.getClassLoader().getResourceAsStream("ticktack.properties"));
+			TICK_TACK_PROPERTIES.load(TickTackLauncher.class.getClassLoader().getResourceAsStream("ticktack.properties"));
 		} catch (IOException e) {
 			LOG.error(e);
 		}
 	}
+
+	private static final String TICK_TACK_URL = TICK_TACK_PROPERTIES.getProperty(TICK_TACK_SERVICE_URL_PARAM_NAME);
+
+	private static final int DAY_WORK_HOURS = 8;
 
 	public static void main(String[] args) {
 
@@ -66,32 +63,21 @@ public class TickTack {
 
 			LocalDate lastDayOfMonth = today.withDayOfMonth(today.lengthOfMonth());
 
-
 			long monthlyWorkingTime = 0;
 
 			int dayOfMonth = 1;
 			do {
 				LocalDate dayToCheck = today.withDayOfMonth(dayOfMonth);
-				String punchDateParam = dayToCheck.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
 
-				HttpClient httpClient = new DefaultHttpClient();
-				HttpGet request = new HttpGet(
-						TICK_TACK_PROPERTIES.getProperty("service.url")
-								+ "/"
-								+ TICK_TACK_PROPERTIES.getProperty("user.id")
-								+ "/"
-								+ punchDateParam
-				);
-				HttpResponse response = httpClient.execute(request);
-				InputStream inputStream = response.getEntity().getContent();
-				String json = CharStreams.toString(new InputStreamReader(inputStream, Charsets.UTF_8));
+				String userId = TICK_TACK_PROPERTIES.getProperty(TICK_TACK_USER_ID_PARAM_NAME);
 
-				Punch[] punches = new Gson().fromJson(json, Punch[].class);
+				List<Punch> punches = new TickTackRequester(TICK_TACK_URL)
+						.doRequest(userId, dayToCheck);
 
-				LOG.debug(Arrays.toString(punches));
+				LOG.debug(punches.stream().map(Object::toString).collect(Collectors.joining(", ")));
 
-				Long timeOfIn = punches[0].timeOfRegistration;
-				Long timeOfOut = punches[1].timeOfRegistration;
+				Long timeOfIn = punches.get(0).timeOfRegistration;
+				Long timeOfOut = punches.get(1).timeOfRegistration;
 
 				DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 						.withLocale(Locale.UK)
