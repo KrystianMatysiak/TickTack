@@ -66,8 +66,10 @@ public class TickTackLauncher {
 			long monthlyWorkingTime = 0;
 
 			int dayOfMonth = 1;
+
+			LocalDate dayToCheck;
 			do {
-				LocalDate dayToCheck = today.withDayOfMonth(dayOfMonth);
+				dayToCheck = today.withDayOfMonth(dayOfMonth);
 
 				String userId = TICK_TACK_PROPERTIES.getProperty(TICK_TACK_USER_ID_PARAM_NAME);
 
@@ -97,7 +99,9 @@ public class TickTackLauncher {
 
 				monthlyWorkingTime += workingTime;
 
-			} while (lastDayOfMonth.isBefore(lastDayOfMonth));
+				dayOfMonth++;
+				
+			} while (dayToCheck.isBefore(lastDayOfMonth));
 
 			long monthlyHoursAtWork = TimeUnit.MILLISECONDS.toHours(monthlyWorkingTime);
 			long monthlyMinutesAtWork = (TimeUnit.MILLISECONDS.toMinutes(monthlyWorkingTime) -
