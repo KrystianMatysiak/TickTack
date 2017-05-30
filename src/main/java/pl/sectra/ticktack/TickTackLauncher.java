@@ -30,9 +30,9 @@ import java.util.concurrent.TimeUnit;
  * Date: 22.03.2016
  * Time: 20:57
  */
-public class TickTack {
+public class TickTackLauncher {
 	
-	private static final Logger LOG = Logger.getLogger(TickTack.class);
+	private static final Logger LOG = Logger.getLogger(TickTackLauncher.class);
 	
 	private static final Properties TICK_TACK_PROPERTIES = new Properties();
 	
@@ -42,7 +42,7 @@ public class TickTack {
 	
 	static {
 		try {
-			TICK_TACK_PROPERTIES.load(TickTack.class.getClassLoader().getResourceAsStream("ticktack.properties"));
+			TICK_TACK_PROPERTIES.load(TickTackLauncher.class.getClassLoader().getResourceAsStream("TickTackLauncher.properties"));
 		} catch (IOException e) {
 			LOG.error(e);
 		}
@@ -54,7 +54,7 @@ public class TickTack {
 		
 		CommandLineArgs commandLineArgs = new CommandLineArgs();
 		JCommander jCommander = new JCommander(commandLineArgs, args);
-		jCommander.setProgramName("TickTack");
+		jCommander.setProgramName("TickTackLauncher");
 
 //		if (commandLineArgs.help) {
 //			jCommander.usage();
