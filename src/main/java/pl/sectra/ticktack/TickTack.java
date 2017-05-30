@@ -31,13 +31,15 @@ import java.util.concurrent.TimeUnit;
  * Time: 20:57
  */
 public class TickTack {
-
+	
 	private static final Logger LOG = Logger.getLogger(TickTack.class);
-
+	
 	private static final Properties TICK_TACK_PROPERTIES = new Properties();
-
+	
 	private static final int DAY_WORK_HOURS = 8;
-
+	
+	private static MissingPunchOutStrategy missingPunchOutStrategy = new WholeDayWorkedStrategy();
+	
 	static {
 		try {
 			TICK_TACK_PROPERTIES.load(TickTack.class.getClassLoader().getResourceAsStream("ticktack.properties"));
@@ -45,11 +47,11 @@ public class TickTack {
 			LOG.error(e);
 		}
 	}
-
+	
 	public static void main(String[] args) {
-
+		
 		LOG.debug("Input parameters: " + Arrays.toString(args));
-
+		
 		CommandLineArgs commandLineArgs = new CommandLineArgs();
 		JCommander jCommander = new JCommander(commandLineArgs, args);
 		jCommander.setProgramName("TickTack");
@@ -57,75 +59,75 @@ public class TickTack {
 //		if (commandLineArgs.help) {
 //			jCommander.usage();
 //		}
-
+		
 		try {
 //			String json = Resources.toString(Resources.getResourceAsStreamsource("20151008.json"), Charsets.UTF_8);
-
+			
 			ZoneId zoneId = ZoneId.systemDefault();
 			LocalDate today = LocalDate.now(zoneId);
-
+			
 			LocalDate lastDayOfMonth = today.withDayOfMonth(today.lengthOfMonth());
-
-
+			
 			long monthlyWorkingTime = 0;
-
+			
 			int dayOfMonth = 1;
 			LocalDate dayToCheck;
 			do {
 				dayToCheck = today.withDayOfMonth(dayOfMonth);
 				String punchDateParam = dayToCheck.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-
+				
 				HttpClient httpClient = new DefaultHttpClient();
 				HttpGet request = new HttpGet(
-						TICK_TACK_PROPERTIES.getProperty("service.url")
-								+ "/"
-								+ TICK_TACK_PROPERTIES.getProperty("user.id")
-								+ "/"
-								+ punchDateParam
+					TICK_TACK_PROPERTIES.getProperty("service.url")
+						+ "/"
+						+ TICK_TACK_PROPERTIES.getProperty("user.id")
+						+ "/"
+						+ punchDateParam
 				);
 				HttpResponse response = httpClient.execute(request);
 				InputStream inputStream = response.getEntity().getContent();
 				String json = CharStreams.toString(new InputStreamReader(inputStream, Charsets.UTF_8));
-
+				
 				Punch[] punches = new Gson().fromJson(json, Punch[].class);
-				if (punches.length != 2) {
+				
+				LOG.debug(Arrays.toString(punches));
+				
+				if (punches.length == 0) {
 					dayOfMonth++;
 					continue;
 				}
 				
-				LOG.debug(Arrays.toString(punches));
-
 				Long timeOfIn = punches[0].timeOfRegistration;
-				Long timeOfOut = punches[1].timeOfRegistration;
-
+				Long timeOfOut = punches.length == 2 ? punches[1].timeOfRegistration : missingPunchOutStrategy.punchOutTime(timeOfIn);
+				
 				DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-						.withLocale(Locale.UK)
-						.withZone(ZoneId.systemDefault());
-
+					.withLocale(Locale.GERMAN)
+					.withZone(ZoneId.systemDefault());
+				
 				String timeOfInString = dateTimeFormatter.format(Instant.ofEpochMilli(timeOfIn));
 				String timeOfOutString = dateTimeFormatter.format(Instant.ofEpochMilli(timeOfOut));
-
+				
 				long workingTime = timeOfOut - timeOfIn;
 				long hoursAtWork = TimeUnit.MILLISECONDS.toHours(workingTime);
 				long minutesAtWork = (TimeUnit.MILLISECONDS.toMinutes(workingTime) -
-						TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(workingTime)));
-
+					TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(workingTime)));
+				
 				LOG.info("In:\t" + timeOfInString);
 				LOG.info("Out:\t" + timeOfOutString);
 				LOG.info("In work for:\t" + hoursAtWork + "h" + minutesAtWork + "min\n");
-
+				
 				monthlyWorkingTime += workingTime;
-
+				
 				dayOfMonth++;
 				
 			} while (dayToCheck.isBefore(lastDayOfMonth));
-
+			
 			long monthlyHoursAtWork = TimeUnit.MILLISECONDS.toHours(monthlyWorkingTime);
 			long monthlyMinutesAtWork = (TimeUnit.MILLISECONDS.toMinutes(monthlyWorkingTime) -
-					TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(monthlyWorkingTime)));
-
+				TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(monthlyWorkingTime)));
+			
 			LOG.info("Monthly in work for:\t" + monthlyHoursAtWork + "h" + monthlyMinutesAtWork + "min\n");
-
+			
 		} catch (IOException e) {
 			LOG.error(e);
 		}
